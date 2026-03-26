@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XPENG | 未来，从此刻开启</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap');
+        body, html, #root {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #050505;
+            color: white;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        #loading-screen {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #050505;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 2px solid rgba(0, 242, 255, 0.1);
+            border-top: 2px solid #00f2ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #error-display {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            padding: 15px;
+            color: #ff4444;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 10000;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-screen">
+        <div class="spinner mb-4"></div>
+        <div class="text-[10px] tracking-[0.4em] text-cyan-400/60 uppercase">正在初始化数字装置...</div>
+    </div>
+    <div id="error-display"></div>
+    <div id="root"></div>
+
+    <script type="module">
+        // 错误捕获
+        window.onerror = function(msg, url, line) {
+            const display = document.getElementById('error-display');
+            display.style.display = 'block';
+            display.innerHTML = `Error: ${msg}<br>Line: ${line}`;
+            document.getElementById('loading-screen').style.display = 'none';
+        };
+
+        import React, { Suspense, useRef, useState, useMemo, useEffect } from "https://esm.sh/react@18.2.0";
+        import { createRoot } from "https://esm.sh/react-dom@18.2.0/client";
+        import * as THREE from "https://esm.sh/three@0.160.0";
+        import { Canvas, useFrame, useThree } from "https://esm.sh/@react-three/fiber@8.15.11";
+        import { 
+            ScrollControls, 
+            Scroll, 
+            useScroll, 
+            Float, 
+            Text,
+            Points,
+            PointMaterial
+        } from "https://esm.sh/@react-three/drei@9.88.11";
+        import { motion, AnimatePresence } from "https://esm.sh/framer-motion@11.0.0";
+
+        const THEME = { primary: "#00f2ff", secondary: "#0066ff", bg: "#050505" };
+
+        // --- 3D Components ---
+        function Background() {
+            const points = useMemo(() => {
+                const p = new Float32Array(2000 * 3);
+                for (let i = 0; i < 2000; i++) {
+                    p[i * 3] = (Math.random() - 0.5) * 60;
+                    p[i * 3 + 1] = (Math.random() - 0.5) * 60;
+                    p[i * 3 + 2] = (Math.random() - 0.5) * 60;
+                }
+                return p;
+            }, []);
+
+            return React.createElement('group', null,
+                React.createElement(Points, { positions: points, stride: 3 },
+                    React.createElement(PointMaterial, { transparent: true, color: THEME.primary, size: 0.03, opacity: 0.15, depthWrite: false })
+                ),
+                React.createElement('gridHelper', { args: [100, 50, 0x222222, 0x111111], position: [0, -5, 0] })
+            );
+        }
+
+        function CarModel({ mode }) {
+            const groupRef = useRef();
+            useFrame((state) => {
+                if (groupRef.current) {
+                    groupRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.2;
+                }
+            });
+
+            return React.createElement(Float, { speed: 1.5, rotationIntensity: 0.2 },
+                React.createElement('group', { ref: groupRef },
+                    React.createElement('mesh', null,
+                        React.createElement('boxGeometry', { args: [2.2, 0.4, 4.8] }),
+                        React.createElement('meshStandardMaterial', { 
+                            color: mode === 'scan' ? THEME.primary : "#111", 
+                            transparent: true, 
+                            opacity: 0.4,
+                            wireframe: mode === 'wireframe'
+                        })
+                    ),
+                    React.createElement('mesh', { position: [0, 0.4, -0.1] },
+                        React.createElement('boxGeometry', { args: [1.7, 0.5, 2.4] }),
+                        React.createElement('meshStandardMaterial', { color: THEME.primary, transparent: true, opacity: 0.2, wireframe: mode === 'wireframe' })
+                    )
+                )
+            );
+        }
+
+        function CameraRig() {
+            const scroll = useScroll();
+            const { camera } = useThree();
+            useFrame(() => {
+                const offset = scroll.offset;
+                camera.position.z = 10 - offset * 20;
+                camera.position.y = 1.5 + offset * 2;
+                camera.lookAt(0, 0, -offset * 15);
+            });
+            return null;
+        }
+
+        function Scene({ mode }) {
+            return React.createElement(React.Fragment, null,
+                React.createElement(CameraRig),
+                React.createElement(Background),
+                React.createElement('group', { position: [0, 0, 0] }, React.createElement(CarModel, { mode })),
+                React.createElement('ambientLight', { intensity: 0.5 }),
+                React.createElement('pointLight', { position: [10, 10, 10], intensity: 1 })
+            );
+        }
+
+        // --- UI ---
+        function App() {
+            const [prologue, setPrologue] = useState(true);
+            const [mode, setMode] = useState('normal');
+
+            useEffect(() => {
+                const loader = document.getElementById('loading-screen');
+                if (loader) loader.style.opacity = '0';
+                setTimeout(() => { if (loader) loader.style.display = 'none'; }, 500);
+            }, []);
+
+            return React.createElement('div', { className: "w-full h-full relative" },
+                // Prologue
+                prologue && React.createElement(motion.div, {
+                    className: "fixed inset-0 z-[100] bg-[#050505] flex flex-col items-center justify-center p-10",
+                    exit: { opacity: 0, scale: 1.1 },
+                    transition: { duration: 1 }
+                },
+                    React.createElement('div', { className: "absolute inset-0 opacity-20" },
+                        React.createElement('img', { 
+                            src: "https://i.postimg.cc/ZqgFw3cj/20260212-xiao-pengp7-su-zhou2799-0309.jpg",
+                            className: "w-full h-full object-cover"
+                        }),
+                        React.createElement('div', { className: "absolute inset-0 bg-gradient-to-r from-[#050505] via-transparent to-transparent" })
+                    ),
+                    React.createElement('div', { className: "relative z-10 text-center" },
+                        React.createElement('h1', { className: "text-6xl font-light tracking-[0.2em] mb-8" }, "未来，从此刻开启"),
+                        React.createElement('button', {
+                            onClick: () => setPrologue(false),
+                            className: "px-20 py-4 border border-white/20 hover:bg-white hover:text-black transition-all tracking-[0.5em] uppercase text-sm"
+                        }, "进入体验")
+                    )
+                ),
+
+                // Main Canvas
+                React.createElement(Canvas, { className: "w-full h-full" },
+                    React.createElement(Suspense, { fallback: null },
+                        React.createElement(ScrollControls, { pages: 3, damping: 0.1 },
+                            React.createElement(Scene, { mode }),
+                            React.createElement(Scroll, { html: true },
+                                React.createElement('div', { className: "h-screen" }),
+                                React.createElement('div', { className: "h-screen flex flex-col justify-center px-20" },
+                                    React.createElement('h2', { className: "text-6xl font-black mb-4" }, "智能驾驶"),
+                                    React.createElement('p', { className: "text-white/40 max-w-md mb-8" }, "在感知与判断之间，将复杂世界转化为从容行动。"),
+                                    React.createElement('div', { className: "flex gap-4" },
+                                        React.createElement('button', { 
+                                            onMouseEnter: () => setMode('wireframe'),
+                                            onMouseLeave: () => setMode('normal'),
+                                            className: "px-6 py-2 border border-white/10 text-[10px] uppercase tracking-widest hover:bg-white hover:text-black transition-all"
+                                        }, "线框模式"),
+                                        React.createElement('button', { 
+                                            onMouseEnter: () => setMode('scan'),
+                                            onMouseLeave: () => setMode('normal'),
+                                            className: "px-6 py-2 border border-white/10 text-[10px] uppercase tracking-widest hover:bg-white hover:text-black transition-all"
+                                        }, "扫描模式")
+                                    )
+                                ),
+                                React.createElement('div', { className: "h-screen flex flex-col justify-center px-20" },
+                                    React.createElement('h2', { className: "text-6xl font-black mb-4" }, "飞行汽车"),
+                                    React.createElement('p', { className: "text-white/40 max-w-md" }, "探索人类移动的第三维度。")
+                                )
+                            )
+                        )
+                    )
+                ),
+
+                // HUD
+                React.createElement('div', { className: "fixed top-10 left-10 pointer-events-none" },
+                    React.createElement('div', { className: "flex items-center gap-4" },
+                        React.createElement('div', { className: "w-10 h-10 bg-white flex items-center justify-center" },
+                            React.createElement('span', { className: "text-black font-black italic" }, "X")
+                        ),
+                        React.createElement('span', { className: "text-[10px] font-bold tracking-[0.5em] uppercase" }, "XPENG 小鹏汽车")
+                    )
+                )
+            );
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+    </script>
+</body>
+</html>
