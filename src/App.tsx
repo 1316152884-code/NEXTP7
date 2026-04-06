@@ -18,6 +18,8 @@ import {
   Menu, 
   X, 
   ChevronRight, 
+  ChevronUp,
+  ChevronDown,
   MousePointer2, 
   Cpu,
   Zap,
@@ -124,7 +126,21 @@ function Scene() {
 
 // --- UI Components ---
 
-function HUD({ prologueState, activeIndex, onReturn, onScrollTo }: { prologueState: PrologueState, activeIndex: number, onReturn: () => void, onScrollTo: (index: number) => void }) {
+function HUD({ 
+  prologueState, 
+  activeIndex, 
+  onReturn, 
+  onScrollTo,
+  onNext,
+  onPrev
+}: { 
+  prologueState: PrologueState, 
+  activeIndex: number, 
+  onReturn: () => void, 
+  onScrollTo: (index: number) => void,
+  onNext: () => void,
+  onPrev: () => void
+}) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isPrologue = prologueState === 'active' || prologueState === 'video';
   const mainColor = "#A40000";
@@ -173,38 +189,65 @@ function HUD({ prologueState, activeIndex, onReturn, onScrollTo }: { prologueSta
         )}
       </div>
 
-      {/* Side Chapter Status Indicator */}
-      <div className="absolute left-10 top-1/2 -translate-y-1/2 flex flex-col gap-12">
-        {[0, 1, 2, 3].map((i) => {
-          const isActive = activeIndex === i;
-          return (
-            <div key={i} className="flex items-center gap-6 group cursor-pointer pointer-events-auto">
-              <div className="flex flex-col items-center gap-2">
-                <motion.span 
-                  animate={{ 
-                    color: isActive ? "#ffffff" : "rgba(255, 255, 255, 0.2)",
-                    opacity: isActive ? [0.8, 1, 0.8] : 1
-                  }}
-                  transition={{ 
-                    opacity: isActive ? { repeat: Infinity, duration: 4, ease: "easeInOut" } : { duration: 0.5 },
-                    color: { duration: 0.5 }
-                  }}
-                  className="text-[9px] font-mono tracking-widest"
-                >
-                  0{i}
-                </motion.span>
-                <motion.div 
-                  animate={{ 
-                    backgroundColor: isActive ? "#ffffff" : "rgba(255, 255, 255, 0.1)",
-                    height: isActive ? 12 : 8
-                  }}
-                  transition={{ duration: 0.5 }}
-                  className="w-[1px]" 
-                />
+      {/* Side Chapter Status Indicator with Arrows */}
+      <div className="absolute left-10 top-1/2 -translate-y-1/2 flex flex-col items-center gap-8 pointer-events-auto">
+        {!isPrologue && (
+          <button 
+            onClick={onPrev}
+            disabled={activeIndex <= 1}
+            className={`p-2 transition-all duration-500 ${activeIndex <= 1 ? 'opacity-0 pointer-events-none' : 'opacity-40 hover:opacity-100 hover:scale-110'}`}
+          >
+            <ChevronUp className="w-4 h-4" />
+          </button>
+        )}
+
+        <div className="flex flex-col gap-12">
+          {[0, 1, 2, 3].map((i) => {
+            const isActive = activeIndex === i;
+            if (i === 0 && !isPrologue) return null; // Hide 00 when in chapters
+            return (
+              <div 
+                key={i} 
+                onClick={() => i > 0 && onScrollTo(i)}
+                className={`flex items-center gap-6 group cursor-pointer ${isActive ? 'pointer-events-none' : 'pointer-events-auto'}`}
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <motion.span 
+                    animate={{ 
+                      color: isActive ? "#ffffff" : "rgba(255, 255, 255, 0.2)",
+                      opacity: isActive ? [0.8, 1, 0.8] : 1
+                    }}
+                    transition={{ 
+                      opacity: isActive ? { repeat: Infinity, duration: 4, ease: "easeInOut" } : { duration: 0.5 },
+                      color: { duration: 0.5 }
+                    }}
+                    className="text-[9px] font-mono tracking-widest"
+                  >
+                    0{i}
+                  </motion.span>
+                  <motion.div 
+                    animate={{ 
+                      backgroundColor: isActive ? "#ffffff" : "rgba(255, 255, 255, 0.1)",
+                      height: isActive ? 12 : 8
+                    }}
+                    transition={{ duration: 0.5 }}
+                    className="w-[1px]" 
+                  />
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+
+        {!isPrologue && (
+          <button 
+            onClick={onNext}
+            disabled={activeIndex >= 3}
+            className={`p-2 transition-all duration-500 ${activeIndex >= 3 ? 'opacity-0 pointer-events-none' : 'opacity-40 hover:opacity-100 hover:scale-110'}`}
+          >
+            <ChevronDown className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Bottom Bar */}
@@ -392,9 +435,17 @@ function SectionContent({ title, subtitle, description, index, children, rightCo
         {/* Subtitle / Explanatory Layer - Slide & Blur Effect */}
         <motion.div 
           variants={subtitleVariants}
-          className="flex flex-col gap-24 max-w-xl"
+          className="flex flex-col gap-24"
         >
-          <p className="text-xs md:text-sm text-white/40 font-light leading-[2.2] tracking-[0.25em]">
+          <p 
+            className="font-normal tracking-[0.05em]"
+            style={{ 
+              fontSize: 'clamp(16px, 1.1vw, 18px)', 
+              color: 'rgba(255, 255, 255, 0.55)', 
+              lineHeight: '1.8', 
+              maxWidth: '520px' 
+            }}
+          >
             {subtitle}
           </p>
           
@@ -563,11 +614,11 @@ const TECH_CARDS = [
   }
 ];
 
-function ChapterTwoDisplay() {
+function ChapterTwoDisplay({ onCardClick }: { onCardClick: (card: any) => void }) {
   return (
     <motion.div 
       initial={{ opacity: 0, x: 60, filter: "blur(20px)" }}
-      whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+      whileInView={{ opacity: 1, x: 40, filter: "blur(0px)" }}
       viewport={{ once: false, margin: "-10%" }}
       transition={{ delay: 0.8, duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
       className="absolute left-[55vw] right-[5vw] top-[50.5%] -translate-y-1/2 w-[clamp(520px,36vw,720px)] z-50 pointer-events-auto"
@@ -591,7 +642,8 @@ function ChapterTwoDisplay() {
               whileInView={{ opacity: 1, y: 0, scale: 1 }}
               viewport={{ once: false }}
               transition={{ delay: 1 + idx * 0.15, duration: 1, ease: [0.22, 1, 0.36, 1] }}
-              className="group relative aspect-[4/3] bg-white/5 border border-white/10 rounded-xl overflow-hidden hover:border-red-600/50 transition-all duration-700"
+              onClick={() => onCardClick(card)}
+              className="group relative aspect-[4/3] bg-white/5 border border-white/10 rounded-xl overflow-hidden hover:border-red-600/50 transition-all duration-700 cursor-pointer"
             >
               {/* Image Layer */}
               <div className="absolute inset-0 opacity-40 group-hover:opacity-70 transition-opacity duration-700">
@@ -678,12 +730,12 @@ function ChapterThreeDisplay() {
   return (
     <motion.div 
       initial={{ opacity: 0, x: 60, filter: "blur(20px)" }}
-      whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+      whileInView={{ opacity: 1, x: 40, filter: "blur(0px)" }}
       viewport={{ once: false, margin: "-10%" }}
       transition={{ delay: 0.8, duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
-      className="absolute left-[58vw] right-[5vw] top-[50%] -translate-y-1/2 w-[clamp(520px,34vw,700px)] z-50 pointer-events-auto"
+      className="absolute left-[55vw] right-[5vw] top-[50.5%] -translate-y-1/2 w-[clamp(520px,36vw,720px)] z-50 pointer-events-auto"
     >
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-12">
         {/* Header */}
         <div className="flex items-center gap-6">
           <div className="flex flex-col">
@@ -700,6 +752,7 @@ function ChapterThreeDisplay() {
           onMouseEnter={() => setIsHovering(true)}
           onMouseLeave={() => setIsHovering(false)}
           className="relative aspect-[16/10] bg-white/5 border border-white/10 rounded-2xl overflow-hidden cursor-none group"
+          style={{ transform: 'scale(1.08)', transformOrigin: 'left center' }}
         >
           {/* Layer 1: Foreground (Default) */}
           <div className="absolute inset-0">
@@ -762,7 +815,7 @@ function ChapterThreeDisplay() {
         </div>
 
         {/* Footer Info */}
-        <div className="flex justify-between items-end">
+        <div className="flex justify-between items-end pt-4 border-t border-white/5">
           <div className="flex gap-10">
             <div className="flex flex-col gap-1">
               <span className="text-[7px] text-white/20 uppercase tracking-[0.4em]">渲染引擎</span>
@@ -1175,7 +1228,7 @@ const PrologueOverlay = ({
             </div>
             
             <motion.p 
-              className="text-sm md:text-base text-white/40 tracking-[0.25em] font-light max-w-lg mb-16"
+              className="text-base md:text-lg text-white/70 tracking-[0.25em] font-light max-w-lg mb-16"
               initial={{ opacity: 0, x: -30 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 1.2, delay: 1.2, ease: "easeOut" }}
@@ -1293,28 +1346,122 @@ const PrologueOverlay = ({
 export default function App() {
   const [prologueState, setPrologueState] = useState<PrologueState>('active');
   const [activeIndex, setActiveIndex] = useState(0);
+  const [scrollObj, setScrollObj] = useState<any>(null);
+  const [selectedCard, setSelectedCard] = useState<any>(null);
   const scrollRef = useRef<any>(null);
+  const isScrollingRef = useRef(false);
+
+  // Disable browser automatic scroll restoration
+  useEffect(() => {
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+  }, []);
 
   const handleScrollTo = (index: number) => {
-    if (scrollRef.current) {
-      const el = scrollRef.current.el;
+    if (scrollObj && !isScrollingRef.current) {
+      isScrollingRef.current = true;
+      const el = scrollObj.el;
       const targetOffset = (index - 1) * 0.5;
       const targetScroll = targetOffset * (el.scrollHeight - el.clientHeight);
       
       el.scrollTo({
         top: targetScroll,
-        behavior: 'auto'
+        behavior: 'smooth'
       });
+
+      // Reset scrolling lock after animation duration
+      setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 1000); // Wait for smooth scroll to finish
     }
   };
+
+  const handleNext = () => {
+    if (activeIndex < 3) handleScrollTo(activeIndex + 1);
+  };
+
+  const handlePrev = () => {
+    if (activeIndex > 1) handleScrollTo(activeIndex - 1);
+  };
+
+  const handleBackToIntro = () => {
+    setPrologueState('returning');
+    // Instant jump to top
+    window.scrollTo(0, 0);
+    if (scrollObj?.el) {
+      scrollObj.el.scrollTo(0, 0);
+    }
+  };
+
+  const handleEnter = () => {
+    setPrologueState('video');
+    // Ensure we start from top
+    requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
+      if (scrollObj?.el) {
+        scrollObj.el.scrollTo(0, 0);
+      }
+    });
+  };
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedCard(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Intercept scroll events for discrete section switching
+  useEffect(() => {
+    if (!scrollObj) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (prologueState !== 'entered' || isScrollingRef.current || selectedCard) {
+        if (prologueState === 'entered' || selectedCard) e.preventDefault();
+        return;
+      }
+      
+      e.preventDefault();
+      if (Math.abs(e.deltaY) > 30) {
+        if (e.deltaY > 0) {
+          handleNext();
+        } else {
+          handlePrev();
+        }
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (prologueState === 'entered' || selectedCard) {
+        e.preventDefault();
+      }
+    };
+
+    const el = scrollObj.el;
+    el?.addEventListener('wheel', handleWheel, { passive: false });
+    el?.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+    return () => {
+      el?.removeEventListener('wheel', handleWheel);
+      el?.removeEventListener('touchmove', handleTouchMove);
+    };
+  }, [scrollObj, prologueState, activeIndex]);
 
   return (
     <div className="h-screen w-full bg-[#050505] text-white overflow-hidden font-sans">
       <HUD 
         prologueState={prologueState} 
         activeIndex={activeIndex} 
-        onReturn={() => setPrologueState('returning')}
+        onReturn={handleBackToIntro}
         onScrollTo={handleScrollTo}
+        onNext={handleNext}
+        onPrev={handlePrev}
       />
       
       <AnimatePresence mode="wait">
@@ -1322,7 +1469,7 @@ export default function App() {
           <PrologueOverlay 
             key="prologue"
             state={prologueState}
-            onEnter={() => setPrologueState('video')} 
+            onEnter={handleEnter} 
             onVideoComplete={() => {
               setPrologueState('entering');
               setActiveIndex(1); // Immediately switch to 01 to avoid delay
@@ -1341,7 +1488,10 @@ export default function App() {
       <Canvas shadows dpr={[1, 2]}>
         <Suspense fallback={null}>
           <ScrollControls pages={3} damping={0.2}>
-            <ScrollProxy onReady={(scroll) => { scrollRef.current = scroll; }} />
+            <ScrollProxy onReady={(scroll) => { 
+              scrollRef.current = scroll; 
+              setScrollObj(scroll);
+            }} />
             <Scene />
             <ScrollManager 
               state={prologueState} 
@@ -1371,7 +1521,7 @@ export default function App() {
                 title="每一次前行，<br /> 都经过思考"
                 subtitle="在感知与判断之间，智能驾驶把复杂世界转化为从容行动。基于端到端大模型，实现全场景、全天候的自动驾驶体验。"
                 description=""
-                rightContent={<ChapterTwoDisplay />}
+                rightContent={<ChapterTwoDisplay onCardClick={setSelectedCard} />}
               />
 
               {/* Chapter 3 */}
@@ -1401,6 +1551,69 @@ export default function App() {
       <div className="fixed inset-0 pointer-events-none z-[60] opacity-10">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
       </div>
+
+      {/* Full-screen Modal for Chapter 2 Cards */}
+      <AnimatePresence>
+        {selectedCard && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedCard(null)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[998]"
+            />
+            {/* Modal Content */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, x: "-50%", y: "-50%" }}
+              animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
+              exit={{ opacity: 0, scale: 0.95, x: "-50%", y: "-50%" }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              className="fixed top-1/2 left-1/2 w-[60vw] max-w-[900px] min-w-[680px] aspect-[16/10] bg-[#0a0a0a] border border-white/10 rounded-2xl overflow-hidden z-[999] shadow-2xl pointer-events-auto"
+            >
+              {/* Image Layer */}
+              <div className="absolute inset-0">
+                <img 
+                  src={selectedCard.img} 
+                  alt={selectedCard.title} 
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+              </div>
+
+              {/* Content Layer */}
+              <div className="absolute inset-0 p-12 flex flex-col justify-end">
+                <div className="flex items-center gap-6 mb-6">
+                  <div className="p-4 bg-red-600/20 border border-red-600/30 rounded-xl">
+                    <selectedCard.icon className="w-8 h-8 text-red-600" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-mono text-white/40 tracking-[0.4em] uppercase mb-1">{selectedCard.label}</span>
+                    <h3 className="text-4xl font-black tracking-tighter uppercase text-white">{selectedCard.title}</h3>
+                  </div>
+                </div>
+                <p className="text-sm text-white/60 leading-relaxed max-w-xl font-light tracking-wide">
+                  {selectedCard.desc}
+                </p>
+              </div>
+
+              {/* Close Button */}
+              <button 
+                onClick={() => setSelectedCard(null)}
+                className="absolute top-8 right-8 w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all group"
+              >
+                <X className="w-6 h-6 text-white/40 group-hover:text-white transition-colors" />
+              </button>
+
+              {/* Decorative Corners */}
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-red-600/30" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-red-600/30" />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
