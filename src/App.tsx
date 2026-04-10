@@ -1341,15 +1341,195 @@ const PrologueOverlay = ({
   );
 };
 
+// --- Preloader Component ---
+const PRELOAD_IMAGES = [
+  "https://i.postimg.cc/fWvwLDkk/logo-hua-ban-1.png",
+  "https://i.postimg.cc/t4BZVFTY/20260212-xiao-pengp7-su-zhou2473-0309.jpg",
+  "https://i.postimg.cc/VLRJqCgn/1.png",
+  "https://i.postimg.cc/dtBh2y6C/2.png",
+  "https://i.postimg.cc/JzzGPzYn/3.png",
+  "https://i.postimg.cc/kggBfgYG/4.png",
+  "https://i.postimg.cc/vmd9Xs9m/shang-se-ban.jpg",
+  "https://i.postimg.cc/8CVWwSWz/zhu-tukv.png",
+  ...PROLOGUE_IMAGES,
+  ...CAR_COLORS.map(c => c.img)
+];
+
+function Preloader({ onComplete }: { onComplete: () => void }) {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    let loadedCount = 0;
+    const startTime = Date.now();
+
+    const preload = async () => {
+      const promises = PRELOAD_IMAGES.map((src) => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.src = src;
+          img.onload = () => {
+            loadedCount++;
+            setProgress(Math.round((loadedCount / PRELOAD_IMAGES.length) * 100));
+            resolve(null);
+          };
+          img.onerror = () => {
+            loadedCount++;
+            setProgress(Math.round((loadedCount / PRELOAD_IMAGES.length) * 100));
+            resolve(null);
+          };
+        });
+      });
+
+      await Promise.all(promises);
+      
+      const elapsedTime = Date.now() - startTime;
+      const minDuration = 1200; // Minimum loading time for smooth transition
+      const remainingTime = Math.max(0, minDuration - elapsedTime);
+
+      setTimeout(() => {
+        onComplete();
+      }, remainingTime);
+    };
+
+    preload();
+  }, [onComplete]);
+
+  return (
+    <motion.div 
+      className="fixed inset-0 z-[1000] bg-[#050505] flex flex-col items-center justify-center"
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <div className="relative flex flex-col items-center gap-8">
+        {/* Logo Animation */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1, ease: "easeOut" }}
+          className="relative"
+        >
+          <img 
+            src="https://i.postimg.cc/fWvwLDkk/logo-hua-ban-1.png" 
+            alt="Logo" 
+            className="h-16 w-auto brightness-200"
+            referrerPolicy="no-referrer"
+          />
+          {/* Scanning Line on Logo */}
+          <motion.div 
+            animate={{ left: ["-100%", "200%"] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            className="absolute top-0 bottom-0 w-1/2 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 pointer-events-none"
+          />
+        </motion.div>
+
+        {/* Progress Bar Container */}
+        <div className="w-48 h-[2px] bg-white/5 relative overflow-hidden">
+          <motion.div 
+            className="absolute inset-y-0 left-0 bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.5)]"
+            initial={{ width: "0%" }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.3 }}
+          />
+        </div>
+
+        {/* Progress Text */}
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-[10px] font-mono text-white/40 tracking-[0.4em] uppercase">Initializing System</span>
+          <span className="text-[10px] font-mono text-red-600/80 tracking-widest">{progress}%</span>
+        </div>
+      </div>
+
+      {/* Background Decorative Elements */}
+      <div className="absolute inset-0 pointer-events-none opacity-20">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-red-600/5 rounded-full blur-[120px]" />
+      </div>
+    </motion.div>
+  );
+}
+
+// --- Footer Component ---
+function Footer({ isActive, bounceY }: { isActive: boolean; bounceY: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: "100%" }}
+      animate={{ 
+        opacity: isActive ? 1 : 0, 
+        y: isActive ? `${bounceY}px` : "100%" 
+      }}
+      transition={{ 
+        opacity: { duration: 0.8, ease: "easeOut" },
+        y: { type: "spring", stiffness: 260, damping: 26 }
+      }}
+      className="fixed inset-0 z-[150] bg-[#050505] flex items-center justify-center p-10 md:p-20 pointer-events-none"
+    >
+      <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center md:items-end gap-12">
+        {/* Left Side */}
+        <div className="flex flex-col gap-6">
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            animate={isActive ? { opacity: 1, y: 0 } : {}}
+            transition={{ delay: 0.4, duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+            className="text-[clamp(2.5rem,5.5vw,4.2rem)] font-semibold tracking-[0.06em] text-[#EDEDED] uppercase leading-[1.15]"
+          >
+            THANK YOU <br /> FOR WATCHING
+          </motion.h2>
+          <motion.div 
+            initial={{ width: 0 }}
+            animate={isActive ? { width: "100%" } : {}}
+            transition={{ delay: 0.8, duration: 1.5, ease: "easeInOut" }}
+            className="h-px bg-gradient-to-r from-red-600/60 to-transparent"
+          />
+        </div>
+
+        {/* Right Side */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={isActive ? { opacity: 1, y: 0 } : {}}
+          transition={{ delay: 0.6, duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+          className="flex flex-col items-center md:items-end gap-10 text-center md:text-right"
+        >
+          <div className="flex flex-col gap-3">
+            <span className="text-[10px] font-mono text-red-600 tracking-[0.6em] uppercase opacity-80">Contact Us</span>
+            <div className="flex flex-col gap-2">
+              <span className="text-sm text-[#EDEDED]/70 font-light tracking-[0.1em]">WeChat: wycz-ppll</span>
+              <span className="text-sm text-[#EDEDED]/70 font-light tracking-[0.1em]">Lark: huangpl2@xiaopeng.com</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-8 mt-4">
+            <img 
+              src="https://i.postimg.cc/fWvwLDkk/logo-hua-ban-1.png" 
+              alt="XPENG Logo" 
+              className="h-7 w-auto opacity-30 grayscale brightness-200"
+              referrerPolicy="no-referrer"
+            />
+            <div className="w-px h-6 bg-white/10" />
+            <span className="text-[9px] text-white/20 tracking-[0.5em] uppercase font-medium">© 2026 XPENG DESIGN</span>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Background Decorative Grid */}
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none">
+        <div className="w-full h-full bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:60px_60px]" />
+      </div>
+    </motion.div>
+  );
+}
+
 // --- Main App ---
 
 export default function App() {
+  const [isLoaded, setIsLoaded] = useState(false);
   const [prologueState, setPrologueState] = useState<PrologueState>('active');
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isFooterActive, setIsFooterActive] = useState(false);
+  const [footerBounce, setFooterBounce] = useState(0);
   const [scrollObj, setScrollObj] = useState<any>(null);
   const [selectedCard, setSelectedCard] = useState<any>(null);
   const scrollRef = useRef<any>(null);
   const isScrollingRef = useRef(false);
+  const scrollAccumulatorRef = useRef(0);
 
   // Disable browser automatic scroll restoration
   useEffect(() => {
@@ -1374,16 +1554,34 @@ export default function App() {
       // Reset scrolling lock after animation duration
       setTimeout(() => {
         isScrollingRef.current = false;
-      }, 1000); // Wait for smooth scroll to finish
+      }, 700); // Adjusted to 700ms for better responsiveness
     }
   };
 
   const handleNext = () => {
-    if (activeIndex < 3) handleScrollTo(activeIndex + 1);
+    if (activeIndex < 3) {
+      handleScrollTo(activeIndex + 1);
+    } else if (activeIndex === 3 && !isFooterActive) {
+      setIsFooterActive(true);
+      // Lock scrolling briefly to prevent overshooting
+      isScrollingRef.current = true;
+      setTimeout(() => { isScrollingRef.current = false; }, 800);
+    } else if (isFooterActive) {
+      // Trigger bounce effect
+      setFooterBounce(25);
+      setTimeout(() => setFooterBounce(0), 300);
+    }
   };
 
   const handlePrev = () => {
-    if (activeIndex > 1) handleScrollTo(activeIndex - 1);
+    if (isFooterActive) {
+      setIsFooterActive(false);
+      // Lock scrolling briefly to prevent jumping straight to Chapter 2
+      isScrollingRef.current = true;
+      setTimeout(() => { isScrollingRef.current = false; }, 800);
+    } else if (activeIndex > 1) {
+      handleScrollTo(activeIndex - 1);
+    }
   };
 
   const handleBackToIntro = () => {
@@ -1428,13 +1626,39 @@ export default function App() {
       }
       
       e.preventDefault();
-      if (Math.abs(e.deltaY) > 30) {
-        if (e.deltaY > 0) {
+      
+      // 1. Normalize deltaY and apply gain for Mac touchpads (small deltaY)
+      let adjustedDelta = e.deltaY;
+      if (Math.abs(e.deltaY) < 10) {
+        adjustedDelta = e.deltaY * 8; // Gain factor 8 for Mac
+      }
+
+      // Apply damping in Footer (30% - 50% reduction)
+      if (isFooterActive) {
+        adjustedDelta *= 0.6; // 40% damping
+      }
+      
+      // 2. Accumulate scroll
+      scrollAccumulatorRef.current += adjustedDelta;
+      
+      // 3. Threshold check (120)
+      const threshold = 120;
+      if (Math.abs(scrollAccumulatorRef.current) >= threshold) {
+        if (scrollAccumulatorRef.current > 0) {
           handleNext();
         } else {
           handlePrev();
         }
+        // 4. Reset accumulator after trigger
+        scrollAccumulatorRef.current = 0;
       }
+
+      // 5. Clear accumulator if user stops scrolling (debounce-like reset)
+      // This prevents "stale" accumulation from triggering a jump later
+      clearTimeout((handleWheel as any)._resetTimer);
+      (handleWheel as any)._resetTimer = setTimeout(() => {
+        scrollAccumulatorRef.current = 0;
+      }, 150);
     };
 
     const handleTouchMove = (e: TouchEvent) => {
@@ -1451,169 +1675,191 @@ export default function App() {
       el?.removeEventListener('wheel', handleWheel);
       el?.removeEventListener('touchmove', handleTouchMove);
     };
-  }, [scrollObj, prologueState, activeIndex]);
+  }, [scrollObj, prologueState, activeIndex, isFooterActive]);
 
   return (
     <div className="h-screen w-full bg-[#050505] text-white overflow-hidden font-sans">
-      <HUD 
-        prologueState={prologueState} 
-        activeIndex={activeIndex} 
-        onReturn={handleBackToIntro}
-        onScrollTo={handleScrollTo}
-        onNext={handleNext}
-        onPrev={handlePrev}
-      />
-      
       <AnimatePresence mode="wait">
-        {(prologueState === 'active' || prologueState === 'video' || prologueState === 'entering' || prologueState === 'returning') && (
-          <PrologueOverlay 
-            key="prologue"
-            state={prologueState}
-            onEnter={handleEnter} 
-            onVideoComplete={() => {
-              setPrologueState('entering');
-              setActiveIndex(1); // Immediately switch to 01 to avoid delay
-            }}
-            onComplete={() => {
-              if (prologueState === 'entering') setPrologueState('entered');
-              if (prologueState === 'returning') {
-                setPrologueState('active');
-                setActiveIndex(0);
-              }
-            }}
-          />
+        {!isLoaded && (
+          <Preloader key="preloader" onComplete={() => setIsLoaded(true)} />
         )}
       </AnimatePresence>
 
-      <Canvas shadows dpr={[1, 2]}>
-        <Suspense fallback={null}>
-          <ScrollControls pages={3} damping={0.2}>
-            <ScrollProxy onReady={(scroll) => { 
-              scrollRef.current = scroll; 
-              setScrollObj(scroll);
-            }} />
-            <Scene />
-            <ScrollManager 
-              state={prologueState} 
-              onIndexChange={(index) => {
-                if (index === -1 && prologueState === 'video') {
-                  setPrologueState('entering');
-                  setActiveIndex(1);
-                } else {
-                  setActiveIndex(index);
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isLoaded ? 1 : 0 }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        className="h-full w-full"
+      >
+        <HUD 
+          prologueState={prologueState} 
+          activeIndex={activeIndex} 
+          onReturn={handleBackToIntro}
+          onScrollTo={handleScrollTo}
+          onNext={handleNext}
+          onPrev={handlePrev}
+        />
+
+        <Footer isActive={isFooterActive} bounceY={footerBounce} />
+        
+        <AnimatePresence mode="wait">
+          {(prologueState === 'active' || prologueState === 'video' || prologueState === 'entering' || prologueState === 'returning') && (
+            <PrologueOverlay 
+              key="prologue"
+              state={prologueState}
+              onEnter={handleEnter} 
+              onVideoComplete={() => {
+                setPrologueState('entering');
+                setActiveIndex(1); // Immediately switch to 01 to avoid delay
+              }}
+              onComplete={() => {
+                if (prologueState === 'entering') setPrologueState('entered');
+                if (prologueState === 'returning') {
+                  setPrologueState('active');
+                  setActiveIndex(0);
                 }
-              }} 
+              }}
             />
-            
-            <Scroll html>
-              {/* Chapter 1 */}
-              <SectionContent 
-                index={1}
-                title="先看见一台车的 <br /> 想象力"
-                subtitle="它不仅承载移动，更承载品牌、审美与下一代体验的起点。通过极致的设计语言，我们重新定义了智能出行的视觉边界。"
-                description=""
-                rightContent={<ChapterOneDisplay />}
+          )}
+        </AnimatePresence>
+
+        <Canvas shadows dpr={[1, 2]}>
+          <Suspense fallback={null}>
+            <ScrollControls pages={3} damping={0.2}>
+              <ScrollProxy onReady={(scroll) => { 
+                scrollRef.current = scroll; 
+                setScrollObj(scroll);
+              }} />
+              <Scene />
+              <ScrollManager 
+                state={prologueState} 
+                onIndexChange={(index) => {
+                  if (index === -1 && prologueState === 'video') {
+                    setPrologueState('entering');
+                    setActiveIndex(1);
+                  } else {
+                    setActiveIndex(index);
+                  }
+                }} 
               />
-
-              {/* Chapter 2 */}
-              <SectionContent 
-                index={2}
-                title="每一次前行，<br /> 都经过思考"
-                subtitle="在感知与判断之间，智能驾驶把复杂世界转化为从容行动。基于端到端大模型，实现全场景、全天候的自动驾驶体验。"
-                description=""
-                rightContent={<ChapterTwoDisplay onCardClick={setSelectedCard} />}
-              />
-
-              {/* Chapter 3 */}
-              <SectionContent 
-                index={3}
-                title="把未来带到 <br /> 现实之前"
-                subtitle="飞行汽车与机器人，正在让想象逐步拥有真实形态。我们不断探索人类移动的终极形态，打破维度与空间的限制。"
-                description=""
-                rightContent={<ChapterThreeDisplay />}
-              />
-
-              {/* Micro-interaction End Section */}
-              <div className="h-screen flex items-center justify-center">
-                <div className="flex flex-col items-center gap-8">
-                  <div className="w-24 h-24 border border-white/10 rounded-full flex items-center justify-center group cursor-pointer hover:border-cyan-400 transition-colors">
-                    <MousePointer2 className="w-6 h-6 text-white/20 group-hover:text-cyan-400 transition-colors" />
-                  </div>
-                  <span className="text-[10px] uppercase tracking-[0.4em] text-white/20">体验已完成</span>
-                </div>
-              </div>
-            </Scroll>
-          </ScrollControls>
-        </Suspense>
-      </Canvas>
-
-      {/* Global Scanning Effect Overlay */}
-      <div className="fixed inset-0 pointer-events-none z-[60] opacity-10">
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
-      </div>
-
-      {/* Full-screen Modal for Chapter 2 Cards */}
-      <AnimatePresence>
-        {selectedCard && (
-          <>
-            {/* Overlay */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedCard(null)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[998]"
-            />
-            {/* Modal Content */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, x: "-50%", y: "-50%" }}
-              animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
-              exit={{ opacity: 0, scale: 0.95, x: "-50%", y: "-50%" }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              className="fixed top-1/2 left-1/2 w-[60vw] max-w-[900px] min-w-[680px] aspect-[16/10] bg-[#0a0a0a] border border-white/10 rounded-2xl overflow-hidden z-[999] shadow-2xl pointer-events-auto"
-            >
-              {/* Image Layer */}
-              <div className="absolute inset-0">
-                <img 
-                  src={selectedCard.img} 
-                  alt={selectedCard.title} 
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
+              
+              <Scroll html>
+                {/* Chapter 1 */}
+                <SectionContent 
+                  index={1}
+                  title="先看见一台车的 <br /> 想象力"
+                  subtitle="它不仅承载移动，更承载品牌、审美与下一代体验的起点。通过极致的设计语言，我们重新定义了智能出行的视觉边界。"
+                  description=""
+                  rightContent={<ChapterOneDisplay />}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-              </div>
 
-              {/* Content Layer */}
-              <div className="absolute inset-0 p-12 flex flex-col justify-end">
-                <div className="flex items-center gap-6 mb-6">
-                  <div className="p-4 bg-red-600/20 border border-red-600/30 rounded-xl">
-                    <selectedCard.icon className="w-8 h-8 text-red-600" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs font-mono text-white/40 tracking-[0.4em] uppercase mb-1">{selectedCard.label}</span>
-                    <h3 className="text-4xl font-black tracking-tighter uppercase text-white">{selectedCard.title}</h3>
+                {/* Chapter 2 */}
+                <SectionContent 
+                  index={2}
+                  title="每一次前行，<br /> 都经过思考"
+                  subtitle="在感知与判断之间，智能驾驶把复杂世界转化为从容行动。基于端到端大模型，实现全场景、全天候的自动驾驶体验。"
+                  description=""
+                  rightContent={<ChapterTwoDisplay onCardClick={setSelectedCard} />}
+                />
+
+                {/* Chapter 3 */}
+                <SectionContent 
+                  index={3}
+                  title="把未来带到 <br /> 现实之前"
+                  subtitle="飞行汽车与机器人，正在让想象逐步拥有真实形态。我们不断探索人类移动的终极形态，打破维度与空间的限制。"
+                  description=""
+                  rightContent={<ChapterThreeDisplay />}
+                />
+
+                {/* Micro-interaction End Section */}
+                <div className="h-screen flex items-center justify-center">
+                  <div className="flex flex-col items-center gap-8">
+                    <div className="w-24 h-24 border border-white/10 rounded-full flex items-center justify-center group cursor-pointer hover:border-cyan-400 transition-colors">
+                      <MousePointer2 className="w-6 h-6 text-white/20 group-hover:text-cyan-400 transition-colors" />
+                    </div>
+                    <span className="text-[10px] uppercase tracking-[0.4em] text-white/20">体验已完成</span>
                   </div>
                 </div>
-                <p className="text-sm text-white/60 leading-relaxed max-w-xl font-light tracking-wide">
-                  {selectedCard.desc}
-                </p>
-              </div>
+              </Scroll>
+            </ScrollControls>
+          </Suspense>
+        </Canvas>
 
-              {/* Close Button */}
-              <button 
+        {/* Global Scanning Effect Overlay */}
+        <div className="fixed inset-0 pointer-events-none z-[60] opacity-10">
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]" />
+        </div>
+
+        {/* Hidden Preload Cache to prevent GC and ensure instant switching */}
+        <div className="fixed opacity-0 pointer-events-none -z-50 overflow-hidden w-0 h-0">
+          {CAR_COLORS.map(c => (
+            <img key={c.img} src={c.img} referrerPolicy="no-referrer" />
+          ))}
+        </div>
+
+        {/* Full-screen Modal for Chapter 2 Cards */}
+        <AnimatePresence>
+          {selectedCard && (
+            <>
+              {/* Overlay */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 onClick={() => setSelectedCard(null)}
-                className="absolute top-8 right-8 w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all group"
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[998]"
+              />
+              {/* Modal Content */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, x: "-50%", y: "-50%" }}
+                animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
+                exit={{ opacity: 0, scale: 0.95, x: "-50%", y: "-50%" }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className="fixed top-1/2 left-1/2 w-[60vw] max-w-[900px] min-w-[680px] aspect-[16/10] bg-[#0a0a0a] border border-white/10 rounded-2xl overflow-hidden z-[999] shadow-2xl pointer-events-auto"
               >
-                <X className="w-6 h-6 text-white/40 group-hover:text-white transition-colors" />
-              </button>
+                {/* Image Layer */}
+                <div className="absolute inset-0">
+                  <img 
+                    src={selectedCard.img} 
+                    alt={selectedCard.title} 
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
+                </div>
 
-              {/* Decorative Corners */}
-              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-red-600/30" />
-              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-red-600/30" />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+                {/* Content Layer */}
+                <div className="absolute inset-0 p-12 flex flex-col justify-end">
+                  <div className="flex items-center gap-6 mb-6">
+                    <div className="p-4 bg-red-600/20 border border-red-600/30 rounded-xl">
+                      <selectedCard.icon className="w-8 h-8 text-red-600" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-mono text-white/40 tracking-[0.4em] uppercase mb-1">{selectedCard.label}</span>
+                      <h3 className="text-4xl font-black tracking-tighter uppercase text-white">{selectedCard.title}</h3>
+                    </div>
+                  </div>
+                  <p className="text-sm text-white/60 leading-relaxed max-w-xl font-light tracking-wide">
+                    {selectedCard.desc}
+                  </p>
+                </div>
+
+                {/* Close Button */}
+                <button 
+                  onClick={() => setSelectedCard(null)}
+                  className="absolute top-8 right-8 w-12 h-12 flex items-center justify-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-full transition-all group"
+                >
+                  <X className="w-6 h-6 text-white/40 group-hover:text-white transition-colors" />
+                </button>
+
+                {/* Decorative Corners */}
+                <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-red-600/30" />
+                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-red-600/30" />
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </motion.div>
     </div>
   );
 }
